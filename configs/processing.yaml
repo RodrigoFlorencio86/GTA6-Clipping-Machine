@@ -1,0 +1,58 @@
+# Processing, search, scoring and export settings.
+# Defaults follow the project spec; every value can be changed here.
+
+upload:
+  allowed_extensions: [".mp4", ".mov", ".mkv", ".webm"]
+  max_file_size_mb: 20480          # 20 GB (applies to local-path imports too)
+  max_video_duration_minutes: 180
+  min_width: 320
+  min_height: 180                  # 320x180 = smallest 16:9 accepted
+
+video:
+  keyframe_interval_seconds: 2     # one keyframe every 2 s
+  window_duration_seconds: 8       # each indexed segment covers 8 s
+  window_overlap_seconds: 2        # consecutive windows share 2 s
+  audio_sample_rate: 16000         # EmbeddingGemma 2 expects 16 kHz mono
+  keyframe_max_side: 768
+  motion_sample_fps: 4
+  motion_frame_width: 160
+
+scenes:
+  enabled: true
+  threshold: 27.0                  # PySceneDetect ContentDetector threshold
+  min_scene_seconds: 1.0
+  frame_skip: 1                    # analyse every 2nd frame (faster, slightly less precise)
+  snap_tolerance_seconds: 1.0
+
+search:
+  top_k: 50
+  min_similarity: 0.65             # cosine similarity between query and segment
+  merge_gap_seconds: 3             # hits closer than this become one moment
+  min_clip_duration_seconds: 8
+  max_clip_duration_seconds: 60
+  target_clip_duration_seconds: [15, 45]
+  min_results: 10                  # fill up to this many with the best sub-threshold moments
+  calibration:                     # rescales cosine for the editorial score only
+    enabled: true
+    floor: 0.55
+    ceiling: 0.80
+
+# Editorial score weights (must sum to 1.0).
+scoring:
+  semantic_similarity: 0.35
+  audio_intensity: 0.20
+  visual_motion: 0.15
+  reaction_presence: 0.15
+  novelty: 0.10
+  duration_fit: 0.05
+
+export:
+  width: 1080
+  height: 1920
+  max_fps: 60
+  crf: 20                          # H.264 quality (lower = better, larger file)
+  preset: medium
+  audio_bitrate: 160k
+  framing: smart                   # smart | center | blur_pad
+  filename_prefix: gta6_clip
+  draft_height: 640

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local configuration and secrets
+.env
+
+# User data never belongs in git: videos, index, previews, clips, database, model weights
+data/*
+!data/.gitkeep
+models/
+videos/
+*.mp4
+*.mkv
+*.mov
+*.webm
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code local state
+.claude/

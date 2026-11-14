@@ -1,0 +1,43 @@
+# Optional. Runs the app in a container; data and model weights live in local folders.
+#   docker compose up --build app                  → CPU, http://127.0.0.1:8501
+#   docker compose --profile gpu up --build app-gpu → NVIDIA GPU (needs the NVIDIA Container
+#       Toolkit and TORCH_INDEX_URL pointing at a CUDA build of PyTorch, e.g. in .env)
+#
+# Put the recordings you want to index in ./videos: inside the app, import them by path
+# (/videos/<file>) to index them in place without copying.
+
+x-app: &app
+  build:
+    context: .
+    args:
+      TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+  image: gta6-clipping-machine:latest
+  environment:
+    GCM_OFFLINE: ${GCM_OFFLINE:-0}
+    GCM_LANG: ${GCM_LANG:-en}
+  volumes:
+    - ./data:/data
+    - ./models:/models
+    - ./videos:/videos:ro
+  ports:
+    - "127.0.0.1:8501:8501"   # local only
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *app
+
+  app-gpu:
+    <<: *app
+    profiles: ["gpu"]
+    environment:
+      GCM_OFFLINE: ${GCM_OFFLINE:-0}
+      GCM_LANG: ${GCM_LANG:-en}
+      GCM_DEVICE: cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

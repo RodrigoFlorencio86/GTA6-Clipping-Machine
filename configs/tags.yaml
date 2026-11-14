@@ -1,0 +1,89 @@
+# Concepts for zero-shot tagging. Each prompt is embedded once with EmbeddingGemma 2
+# and compared with every indexed segment. Add, remove or reword freely, then re-index.
+
+tags:
+  max_tags_per_segment: 3
+  min_zscore: 1.0        # a tag must stand out within the video...
+  min_similarity: 0.65   # ...and reach this cosine similarity to the concept
+  reaction_floor: 0.62   # cosine band mapped to 0-1 for the reaction signal
+  reaction_ceiling: 0.76
+  concepts:
+    - id: police_chase
+      label: police chase
+      label_pt: perseguição policial
+      prompt: police cars with flashing lights chasing a vehicle
+    - id: explosion
+      label: explosion
+      label_pt: explosão
+      prompt: a large explosion with fire and smoke
+    - id: shootout
+      label: shootout
+      label_pt: tiroteio
+      prompt: a gunfight with characters shooting guns
+    - id: car_crash
+      label: car crash
+      label_pt: batida de carro
+      prompt: cars crashing into each other
+    - id: drift
+      label: drift
+      label_pt: drift
+      prompt: a car drifting around a corner with tire smoke
+    - id: high_speed
+      label: high-speed driving
+      label_pt: alta velocidade
+      prompt: driving a car at very high speed on a road
+    - id: stunt_jump
+      label: stunt jump
+      label_pt: salto
+      prompt: a vehicle flying through the air after a jump
+    - id: motorcycle
+      label: motorcycle
+      label_pt: moto
+      prompt: riding a motorcycle
+    - id: aircraft
+      label: aircraft
+      label_pt: aeronave
+      prompt: flying a helicopter or an airplane
+    - id: boat
+      label: boat
+      label_pt: barco
+      prompt: driving a boat on the water
+    - id: parachute
+      label: skydiving
+      label_pt: paraquedas
+      prompt: a character skydiving with a parachute
+    - id: fall
+      label: fall
+      label_pt: queda
+      prompt: a character falling down or being thrown through the air
+    - id: fist_fight
+      label: fist fight
+      label_pt: briga
+      prompt: characters fighting hand to hand
+    - id: vehicle_fire
+      label: vehicle on fire
+      label_pt: veículo em chamas
+      prompt: a vehicle on fire
+    - id: cutscene
+      label: cutscene
+      label_pt: cena cinematográfica
+      prompt: a cinematic cutscene with characters talking
+    - id: scenic
+      label: scenic view
+      label_pt: paisagem
+      prompt: a beautiful landscape view, sunset over the city or the ocean
+    - id: night_city
+      label: city at night
+      label_pt: cidade à noite
+      prompt: city streets at night with neon lights
+    - id: menu
+      label: menu or map
+      label_pt: menu ou mapa
+      prompt: a video game menu, pause screen or map screen
+  # Text cues for the "reaction presence" signal (webcam overlay / voice reactions).
+  reaction_cues:
+    - a person laughing loudly
+    - a person screaming in surprise
+    - a streamer reacting with excitement to a video game
+    - a face camera overlay of a gamer reacting
+    - people cheering and shouting

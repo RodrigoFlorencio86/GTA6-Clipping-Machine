@@ -1,0 +1,24 @@
+# Runtime dependencies (the same as pyproject.toml).
+# Recommended install:  pip install -e .        (adds the `clipping-machine` command)
+# Plain install:        pip install -r requirements.txt
+#
+# GPU users: install the CUDA build of PyTorch first (see https://pytorch.org/get-started/),
+# then install the rest. FFmpeg must be installed separately and be on PATH.
+
+sentence-transformers>=6.1.0
+torch>=2.6
+torchvision>=0.21
+pillow>=10.0
+numpy>=1.26
+lancedb>=0.20
+pyarrow>=15.0
+scenedetect>=0.7
+streamlit>=1.40
+altair>=5.0
+pandas>=2.0
+pydantic>=2.6
+pyyaml>=6.0
+python-dotenv>=1.0
+
+# Optional: burned-in subtitles (local transcription)
+# faster-whisper>=1.1

@@ -1,0 +1,11 @@
+[server]
+address = "127.0.0.1"      # local only: the app is not exposed to your network
+maxUploadSize = 4096        # MB per drag-and-drop upload; use the local-path import for bigger files
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false    # no telemetry
+
+[theme]
+base = "dark"
+primaryColor = "#F2A33A"

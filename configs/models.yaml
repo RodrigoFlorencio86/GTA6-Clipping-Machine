@@ -1,0 +1,20 @@
+# Model settings. EmbeddingGemma 2 is the only model the app requires.
+
+embedding:
+  model: google/embeddinggemma-2   # Hugging Face id, or a local folder with the weights
+  dimension: 768                   # 768 (native) or a Matryoshka size: 512, 256, 128
+  reduced_dimensions: [128, 256, 512]
+  normalize: true
+  device: auto                     # auto | cuda | mps | cpu
+  dtype: auto                      # auto | float32 | bfloat16 (never float16: it produces NaNs)
+  batch_size: 4
+  include_audio: true              # false skips the 300M audio encoder (frames only)
+  local_files_only: false          # true = never contact the Hugging Face Hub
+  query_prompt_name: SearchQuery
+  vision_tokens: auto              # tokens per frame: auto (140 on GPU, 70 on CPU), 70, 140, 280...
+
+# Optional. Only used for burned-in subtitles on export: pip install -e ".[subtitles]"
+subtitles:
+  model: small                     # faster-whisper model size
+  language: null                   # null = auto-detect
+  compute_type: int8
