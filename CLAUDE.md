@@ -114,6 +114,7 @@ lancedb 0.41, streamlit 1.67, scenedetect 0.7.3, numpy 2.5, pandas 3.1.
 Verificado nesta versão:
 
 - `pytest`: 180 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
+- CI no GitHub Actions verde: Ubuntu com Python 3.11, 3.12 e 3.13 e Windows com Python 3.13 (lint, mypy, pytest). No 3.11 o NumPy instalado é o 2.4, cujas anotações devolvem `Any` em `np.clip`/`np.sqrt`: converta com `np.asarray(..., dtype=...)` anotado.
 - `ruff check`, `ruff format --check` e `mypy --strict` limpos.
 - Teste ponta a ponta com o modelo real (CLI `index` + `search`) num vídeo sintético de 96 s com 8 cenas: as consultas caem nas cenas certas, uma consulta sem correspondência não retorna nada acima de 0,65, busca em ~0,2 s.
 - UI coberta por `tests/test_ui.py` (`AppTest`): abas, troca de idioma, recusa de link, exigência de confirmação de direitos e fluxo completo importar → indexar → buscar → gerar clipe → aprovar → exportar.
@@ -124,7 +125,9 @@ Ainda não verificado pelo mantenedor: GPU CUDA, macOS, faster-whisper com legen
 
 Próximos passos sugeridos (ver também `docs/ROADMAP.md`):
 
-1. Conferir a primeira execução do CI no GitHub Actions e corrigir o que falhar em Linux/3.11.
-2. Gravar um GIF/screenshot real da UI com gameplay próprio para o README (aumenta muito a conversão em estrelas).
-3. Testar com uma gravação longa real (1–3 h) e ajustar `tags.yaml` e os pesos com base no resultado.
+1. Gravar um GIF/screenshot real da UI com gameplay próprio do usuário para o README (aumenta muito a conversão em estrelas).
+2. Testar com uma gravação longa real (1–3 h) e ajustar `tags.yaml` e os pesos com base no resultado.
+3. Criar a release `v0.1.0` no GitHub (tag + notas) quando o usuário validar com gameplay real.
 4. Itens da fase 2 do roadmap: ajustar bordas do clipe a cortes de cena e silêncios, descoberta de destaques sem consulta, VLM local para descrições.
+
+Para chamar a API do GitHub sem `gh`: `printf "protocol=https\nhost=github.com\n\n" | git credential fill` devolve o token (escopos `repo`, `workflow`); nunca imprima nem grave o token.
