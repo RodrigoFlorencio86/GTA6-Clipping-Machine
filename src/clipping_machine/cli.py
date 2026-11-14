@@ -23,22 +23,40 @@ def _format_time(ms: int) -> str:
     return f"{total // 3600}:{total % 3600 // 60:02d}:{total % 60:02d}"
 
 
-def _cmd_run(args: argparse.Namespace) -> int:
+_WILDCARD_HOSTS = {"0.0.0.0", "::"}  # listen on every interface
+
+
+def streamlit_command(host: str, port: int) -> list[str]:
+    """Command line that starts the web app.
+
+    ``browser.serverAddress`` is always set: when it is missing and the server listens on
+    every interface (as inside Docker), Streamlit contacts checkip.amazonaws.com to print
+    an "External URL". Setting it keeps the app free of any outbound request.
+    """
     app = Path(__file__).resolve().parent / "ui" / "streamlit_app.py"
-    command = [
+    shown = "localhost" if host in _WILDCARD_HOSTS else host
+    return [
         sys.executable,
         "-m",
         "streamlit",
         "run",
         str(app),
         "--server.address",
-        args.host,
+        host,
         "--server.port",
-        str(args.port),
+        str(port),
+        "--server.headless",
+        "true",
+        "--browser.serverAddress",
+        shown,
         "--browser.gatherUsageStats",
         "false",
     ]
-    return subprocess.call(command)
+
+
+def _cmd_run(args: argparse.Namespace) -> int:
+    print(f"Open http://127.0.0.1:{args.port} in your browser (Ctrl+C to stop).")
+    return subprocess.call(streamlit_command(args.host, args.port))
 
 
 def _cmd_doctor(_: argparse.Namespace) -> int:

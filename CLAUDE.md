@@ -113,10 +113,12 @@ lancedb 0.41, streamlit 1.67, scenedetect 0.7.3, numpy 2.5, pandas 3.1.
 
 Verificado nesta versão:
 
-- `pytest`: 179 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
+- `pytest`: 180 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
 - `ruff check`, `ruff format --check` e `mypy --strict` limpos.
 - Teste ponta a ponta com o modelo real (CLI `index` + `search`) num vídeo sintético de 96 s com 8 cenas: as consultas caem nas cenas certas, uma consulta sem correspondência não retorna nada acima de 0,65, busca em ~0,2 s.
 - UI coberta por `tests/test_ui.py` (`AppTest`): abas, troca de idioma, recusa de link, exigência de confirmação de direitos e fluxo completo importar → indexar → buscar → gerar clipe → aprovar → exportar.
+
+- Imagem Docker (CPU) compila e sobe; `doctor` roda dentro dela; o app não faz consulta de IP externo (`browser.serverAddress` sempre definido pela CLI; teste em `test_guardrails.py`).
 
 Ainda não verificado pelo mantenedor: GPU CUDA, macOS, faster-whisper com legenda real (o caminho de queima de SRT é testado; a transcrição não), Docker com GPU.
 

@@ -240,7 +240,7 @@ virality.
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 179 tests; no model download (a fake embedder is used)
+python -m pytest              # 180 tests; no model download (a fake embedder is used)
 python -m pytest -m model     # opt-in test with the real EmbeddingGemma 2
 python -m ruff check src tests && python -m ruff format --check src tests
 python -m mypy                # strict

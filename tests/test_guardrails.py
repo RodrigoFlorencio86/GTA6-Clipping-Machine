@@ -115,6 +115,17 @@ def test_streamlit_is_local_only_and_does_not_report_usage() -> None:
     assert config["server"]["address"] == "127.0.0.1"
 
 
+def test_web_app_never_looks_up_the_external_ip() -> None:
+    """Streamlit calls checkip.amazonaws.com unless browser.serverAddress is set."""
+    from clipping_machine.cli import streamlit_command
+
+    for host in ("127.0.0.1", "0.0.0.0", "::"):
+        command = streamlit_command(host, 8501)
+        option = command.index("--browser.serverAddress")
+        assert command[option + 1] in {"127.0.0.1", "localhost"}
+        assert command[command.index("--browser.gatherUsageStats") + 1] == "false"
+
+
 def test_importing_the_app_disables_telemetry_in_the_process() -> None:
     import clipping_machine.services  # noqa: F401
 

@@ -5,6 +5,7 @@ fileWatcherType = "none"
 
 [browser]
 gatherUsageStats = false    # no telemetry
+serverAddress = "localhost" # also stops Streamlit from looking up your public IP
 
 [theme]
 base = "dark"
