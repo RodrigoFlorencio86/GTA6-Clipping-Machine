@@ -90,6 +90,9 @@ lancedb 0.41, streamlit 1.67, scenedetect 0.7.3, numpy 2.5, pandas 3.1.
 - Em gameplay real (FF8, 8 min 50 s, 88 janelas) a faixa fica mais cheia: consultas genéricas tinham até 50 janelas acima de 0,65, momentos barulhentos pouco relacionados passavam na frente da cena certa e janelas vizinhas viravam blocos de 40–56 s. Por isso existe `search.relative_margin` (0,04): o limiar efetivo é `max(min_similarity, melhor − 0,04)` e o score só reordena momentos de relevância parecida. Entre esses, o mais barulhento ainda tende a ganhar (fórmula da spec; a CLI tem `--sort similarity`).
 - Bordas pretas: a gravação de FF8 tinha a imagem em 1440x~1014 dentro de 1920x1080 (barras com luma ~0–4). `analyze_framing` detectou x 246–1674, y 36–1038, igual ao `cropdetect` do FFmpeg com a margem de 1 px de análise. Jogos atuais em tela cheia não têm borda (a detecção não faz nada), mas cutscenes com letterbox e canvas do OBS têm.
 - As tags de `tags.yaml` são de GTA; em outro jogo saem sem sentido (paraquedas, briga em FF8). É esperado: o usuário edita o arquivo.
+- Teste com 3 vídeos de GTA 6 (material da Rockstar posto pelo usuário na raiz, só para teste local; **nunca** usar em README/GIF): 15 consultas com gabarito → top-1 10/15, top-3 11/15, 2/2 consultas negativas sem resultado; o `relative_margin` não mudou o top-1 e deixou os intervalos mais justos. Erros = cenas curtas ou escuras.
+- Smart crop sem limite cortava o carro/personagem em GTA (o cenário se move, o jogador fica no centro). Agora `limit_focus` mantém o centro da tela na metade central do crop (`export.smart_crop_center_band: 0.5`). Na mira por cima do ombro o personagem fica fora de qualquer crop 9:16: usar `blur_pad`.
+- Tags por z-score davam "paraquedas" num escritório escuro (conceito raro no vídeo ganha z alto com pouco). Agora a tag também precisa estar entre os 3 conceitos mais próximos da janela (`tags.max_rank: 3`); "paraquedas" sumiu das 8 janelas. Tags continuam heurísticas ("barco" dentro de um carro).
 - Pesos em cache: `~/.cache/huggingface/hub/models--google--embeddinggemma-2` (sem symlinks no Windows; aviso inofensivo).
 
 ## Convenções de código
@@ -115,7 +118,7 @@ lancedb 0.41, streamlit 1.67, scenedetect 0.7.3, numpy 2.5, pandas 3.1.
 
 Verificado nesta versão:
 
-- `pytest`: 190 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
+- `pytest`: 193 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
 - CI no GitHub Actions verde: Ubuntu com Python 3.11, 3.12 e 3.13 e Windows com Python 3.13 (lint, mypy, pytest). No 3.11 o NumPy instalado é o 2.4, cujas anotações devolvem `Any` em `np.clip`/`np.sqrt`: converta com `np.asarray(..., dtype=...)` anotado.
 - `ruff check`, `ruff format --check` e `mypy --strict` limpos.
 - Teste ponta a ponta com o modelo real (CLI `index` + `search`) num vídeo sintético de 96 s com 8 cenas: as consultas caem nas cenas certas, uma consulta sem correspondência não retorna nada acima de 0,65, busca em ~0,2 s.

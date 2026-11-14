@@ -196,6 +196,9 @@ class ExportConfig(_Section):
     draft_height: int = Field(default=640, ge=160)
     # Cut black borders recorded around the picture (4:3 games, letterboxed cutscenes,
     # an OBS canvas larger than the game) before framing. No-op when there are none.
+    # Smart crop: the screen centre (where a third-person game keeps the player) must stay
+    # in this central fraction of the vertical frame. 0 = always centred, 1 = may touch the edge.
+    smart_crop_center_band: float = Field(default=0.5, ge=0, le=1)
     remove_black_borders: bool = True
     black_level: int = Field(default=24, ge=0, le=255)  # mean luma at or below = border
 
@@ -228,6 +231,9 @@ class TagConfig(_Section):
     # A tag must stand out within the video (z-score) *and* clear an absolute cosine floor.
     min_zscore: float = 1.0
     min_similarity: float = Field(default=0.65, ge=0, le=1)
+    # ...and be among the segment's N most similar concepts (stops rare concepts winning
+    # on a tiny bump). 0 disables the rank check.
+    max_rank: int = Field(default=3, ge=0)
     # Cosine band mapped to 0-1 for the "reaction presence" signal.
     reaction_floor: float = 0.62
     reaction_ceiling: float = 0.76

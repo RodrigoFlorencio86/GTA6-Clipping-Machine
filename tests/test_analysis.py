@@ -116,6 +116,23 @@ def test_select_tags_with_few_segments_falls_back_to_ranking() -> None:
     ) == [("b",)]
 
 
+def test_rare_concept_needs_to_be_among_the_closest_to_be_a_tag() -> None:
+    """Real case: "parachute" tagged on a dark office because it is rare in that video."""
+    ids = ["shootout", "cutscene", "fall", "parachute"]
+    rng = np.random.default_rng(5)
+    base = np.array([0.70, 0.68, 0.67, 0.62], dtype=np.float32)
+    similarities = (base + rng.standard_normal((20, 4)) * 0.004).astype(np.float32)
+    similarities[7, 3] = 0.655  # a small bump of the rare concept: huge z-score, still 4th
+    similarities[12, 0] = 0.74  # a real standout of a common concept, ranked 1st
+    loose = select_tags(similarities, ids, max_tags=3, min_zscore=1.0, min_similarity=0.65)
+    assert "parachute" in loose[7]
+    strict = select_tags(
+        similarities, ids, max_tags=3, min_zscore=1.0, min_similarity=0.65, max_rank=3
+    )
+    assert "parachute" not in strict[7]
+    assert "shootout" in strict[12]
+
+
 def test_footage_without_any_concept_gets_no_tags() -> None:
     """Standing out within the video is not enough: the match must be real."""
     rng = np.random.default_rng(3)

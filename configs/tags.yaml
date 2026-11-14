@@ -5,6 +5,7 @@ tags:
   max_tags_per_segment: 3
   min_zscore: 1.0        # a tag must stand out within the video...
   min_similarity: 0.65   # ...and reach this cosine similarity to the concept
+  max_rank: 3            # ...and be one of the segment's 3 closest concepts (0 = off)
   reaction_floor: 0.62   # cosine band mapped to 0-1 for the reaction signal
   reaction_ceiling: 0.76
   concepts:

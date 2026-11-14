@@ -55,6 +55,7 @@ export:
   preset: medium
   audio_bitrate: 160k
   framing: smart                   # smart | center | blur_pad
+  smart_crop_center_band: 0.5      # screen centre (the player) stays in the middle 50% of the crop
   filename_prefix: gta6_clip
   draft_height: 640
   remove_black_borders: true       # cut black bars recorded around the picture (no-op if none)

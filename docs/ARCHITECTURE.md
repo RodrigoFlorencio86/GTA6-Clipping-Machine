@@ -57,8 +57,10 @@ percentiles, so a quiet recording and a loud one rank comparably.
 
 Zero-shot tags (`analysis/scene_describer.py`): each concept in `configs/tags.yaml` is embedded
 once as a text query. A segment gets a tag when its similarity stands out within the video
-(z-score ≥ 1) **and** clears an absolute cosine floor (0.65). Without the floor, footage with
-none of the concepts still received "relative winner" tags.
+(z-score ≥ 1), clears an absolute cosine floor (0.65) **and** is one of the segment's 3
+closest concepts (`max_rank`). Without the floor, footage with none of the concepts still
+received "relative winner" tags. Without the rank check, a concept that is rare in a video
+wins a high z-score from a tiny bump: real GTA footage had a dark office tagged "parachute".
 
 ## Search
 
@@ -125,7 +127,11 @@ candidate ──approve──► approved ──export──► exported ──u
     `cropdetect`. Borders under 1% of the frame are ignored, and a box under half the frame
     is rejected, so full-frame footage is left untouched. The same pass feeds the smart crop.
   - `smart`: scale to fill and crop, shifted towards localized motion. Whole-frame change
-    (camera pans) is subtracted first, so only a moving subject pulls the crop.
+    (camera pans) is subtracted first, so only a moving subject pulls the crop. The shift is
+    limited so the screen centre stays in the middle half of the crop
+    (`smart_crop_center_band: 0.5`, i.e. ±8% of the source width for 16:9 → 9:16). In
+    third-person games the player and the car stay at the centre while the scenery moves;
+    unlimited, the crop followed the scenery and cut the car in half on real GTA footage.
   - `center`: plain centre crop.
   - `blur_pad`: the full frame over a blurred, zoomed copy of itself.
 - Subtitles (optional, `[subtitles]` extra): the clip's audio is transcribed locally with

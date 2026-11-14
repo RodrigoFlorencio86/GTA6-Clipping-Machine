@@ -240,6 +240,8 @@ class ClippingService:
             detect_borders=export.remove_black_borders,
             track_focus=framing == "smart",
             black_level=export.black_level,
+            output_size=(export.width, export.height),
+            center_band=export.smart_crop_center_band,
         )
 
     def render_draft(

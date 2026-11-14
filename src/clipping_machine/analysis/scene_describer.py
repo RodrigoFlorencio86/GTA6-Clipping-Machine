@@ -68,6 +68,7 @@ class SceneDescriber:
             max_tags=self._config.max_tags_per_segment,
             min_zscore=self._config.min_zscore,
             min_similarity=self._config.min_similarity,
+            max_rank=self._config.max_rank or None,
         )
         reaction = reaction_presence(
             segment_vectors @ self._reactions().T,
@@ -84,10 +85,14 @@ def select_tags(
     max_tags: int,
     min_zscore: float,
     min_similarity: float = 0.0,
+    max_rank: int | None = None,
 ) -> list[tuple[str, ...]]:
     """Pick, per segment, the concepts that stand out and are similar enough.
 
-    ``similarities`` has shape ``(segments, concepts)`` and holds cosine values.
+    ``similarities`` has shape ``(segments, concepts)`` and holds cosine values. With
+    ``max_rank``, a concept must also be among the segment's ``max_rank`` most similar
+    concepts. Without that, a concept that is rare in the video (low baseline) wins a high
+    z-score from any small bump, which tagged a dark office "parachute" on real footage.
     """
     segments, concepts = similarities.shape if similarities.ndim == 2 else (0, 0)
     if segments == 0 or concepts == 0 or max_tags == 0:
@@ -102,12 +107,14 @@ def select_tags(
         ]
 
     scores = zscores(similarities, axis=0)
+    rank_limit = concepts if max_rank is None else max(1, max_rank)
     result: list[tuple[str, ...]] = []
     for i, row in enumerate(scores):
+        closest = {int(j) for j in np.argsort(-similarities[i])[:rank_limit]}
         ranked = [
             int(j)
             for j in np.argsort(-row)
-            if row[j] >= min_zscore and similarities[i, j] >= min_similarity
+            if row[j] >= min_zscore and similarities[i, j] >= min_similarity and int(j) in closest
         ]
         result.append(tuple(concept_ids[j] for j in ranked[:max_tags]))
     return result

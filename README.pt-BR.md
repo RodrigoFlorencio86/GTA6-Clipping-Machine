@@ -136,7 +136,10 @@ nem viralização.
   parecida passe na frente da certa, mas entre momentos de relevância parecida o mais
   barulhento costuma vir primeiro. Ajuste os pesos em `processing.yaml`.
 - Tags e presença de reação são heurísticas.
-- O recorte inteligente usa uma posição horizontal por clipe.
+- O recorte inteligente usa uma posição horizontal por clipe e se desloca pouco: o centro da
+  tela, onde jogos em terceira pessoa mantêm o personagem ou o carro, sempre fica no quadro.
+  Na mira por cima do ombro o personagem fica à esquerda do centro, fora de um corte 9:16;
+  nesses clipes, use o enquadramento com fundo desfocado.
 - Indexar na CPU é lento para sessões longas.
 
 ## Licença

@@ -4,7 +4,10 @@ Framings:
 
 * ``center``   — scale to fill, crop around the middle.
 * ``smart``    — same crop, but shifted towards where the motion is (see
-  :func:`focus_from_frames`). Falls back to the centre when motion is diffuse.
+  :func:`focus_from_frames`). Falls back to the centre when motion is diffuse. The
+  shift is limited (:func:`limit_focus`) so the centre of the screen stays in frame: in
+  third-person games the player character or car sits there while the scenery moves,
+  so following raw motion would crop the player out.
 * ``blur_pad`` — the whole frame fitted to the width over a blurred, zoomed copy;
   nothing is cropped away.
 
@@ -193,6 +196,29 @@ def focus_from_frames(frames: NDArray[np.uint8]) -> float:
     return float(0.5 + _FOCUS_STRENGTH * (centroid - 0.5))
 
 
+def limit_focus(
+    focus_x: float,
+    src_width: int,
+    src_height: int,
+    out_width: int,
+    out_height: int,
+    center_band: float = 0.5,
+) -> float:
+    """Clamp a smart-crop focus so the source's centre stays inside the crop.
+
+    ``center_band`` is the central fraction of the crop width where the source centre
+    must remain: 0 pins the crop to the centre, 1 lets the centre reach the crop's edge.
+    A source no wider than the output aspect is not cropped sideways, so it is centred.
+    """
+    if src_width <= 0 or src_height <= 0 or out_width <= 0 or out_height <= 0:
+        return 0.5
+    crop_fraction = (out_width / out_height) / (src_width / src_height)
+    if crop_fraction >= 1.0:
+        return 0.5
+    reach = crop_fraction * min(1.0, max(0.0, center_band)) / 2
+    return min(0.5 + reach, max(0.5 - reach, focus_x))
+
+
 def analyze_framing(
     video_path: Path,
     info: ffmpeg.MediaInfo,
@@ -202,8 +228,32 @@ def analyze_framing(
     detect_borders: bool,
     track_focus: bool,
     black_level: int = 24,
+    output_size: tuple[int, int] = (1080, 1920),
+    center_band: float = 0.5,
 ) -> FramingAnalysis:
-    """One low-resolution pass over the clip: black borders and/or where the action is."""
+    """One low-resolution pass over the clip: black borders and/or where the action is.
+
+    The focus is relative to the content box (when borders are cut) and already limited
+    by :func:`limit_focus` for an output of ``output_size`` (width, height).
+    """
+    raw = _analyze(video_path, info, start_ms, end_ms, detect_borders, track_focus, black_level)
+    if raw.focus_x is None:
+        return raw
+    box = raw.content_box
+    width, height = (box.width, box.height) if box else (info.width, info.height)
+    focus = limit_focus(raw.focus_x, width, height, *output_size, center_band=center_band)
+    return FramingAnalysis(content_box=box, focus_x=focus)
+
+
+def _analyze(
+    video_path: Path,
+    info: ffmpeg.MediaInfo,
+    start_ms: int,
+    end_ms: int,
+    detect_borders: bool,
+    track_focus: bool,
+    black_level: int,
+) -> FramingAnalysis:
     if not (detect_borders or track_focus) or info.width <= 0 or info.height <= 0:
         return FramingAnalysis()
     if not detect_borders:

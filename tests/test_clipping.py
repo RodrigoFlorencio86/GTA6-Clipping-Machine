@@ -28,6 +28,7 @@ from clipping_machine.clipping.vertical_formatter import (
     detect_content_box,
     estimate_focus_x,
     focus_from_frames,
+    limit_focus,
     vertical_filter,
 )
 from clipping_machine.config import ExportConfig
@@ -80,6 +81,32 @@ def test_focus_from_frames_locates_localized_motion() -> None:
     assert focus_from_frames(frames) > 0.75
     mirrored = frames[:, :, ::-1].copy()
     assert focus_from_frames(mirrored) < 0.25
+
+
+def test_smart_crop_keeps_the_screen_centre_in_frame() -> None:
+    # 16:9 -> 9:16 keeps 31.6% of the width. With the default band (0.5) the source centre
+    # must stay in the middle half of the crop: focus within 0.5 +/- 0.079.
+    reach = (1080 / 1920) / (1920 / 1080) * 0.25
+    assert limit_focus(0.77, 1920, 1080, 1080, 1920) == pytest.approx(0.5 + reach)
+    assert limit_focus(0.10, 1920, 1080, 1080, 1920) == pytest.approx(0.5 - reach)
+    assert limit_focus(0.52, 1920, 1080, 1080, 1920) == 0.52  # small shifts pass through
+    assert limit_focus(0.9, 1920, 1080, 1080, 1920, center_band=0.0) == 0.5
+    # Band 1: the centre may reach the crop edge, never leave it.
+    assert limit_focus(1.0, 1920, 1080, 1080, 1920, center_band=1.0) == pytest.approx(
+        0.5 + reach * 2
+    )
+    # A source that is not wider than 9:16 is not cropped sideways.
+    assert limit_focus(0.9, 1080, 1920, 1080, 1920) == 0.5
+    assert limit_focus(0.9, 0, 1080, 1080, 1920) == 0.5
+
+
+def test_limited_focus_never_crops_out_the_centre() -> None:
+    for focus in (0.0, 0.2, 0.5, 0.8, 1.0):
+        safe = limit_focus(focus, 1920, 1080, 1080, 1920)
+        chain = crop_filter(1920, 1080, 1080, 1920, safe)
+        x = int(chain.split("crop=1080:1920:")[1].split(":")[0])
+        centre = 3414 / 2  # source centre in the scaled frame
+        assert x + 1080 * 0.25 <= centre <= x + 1080 * 0.75
 
 
 def test_focus_defaults_to_centre_without_a_clear_subject() -> None:

@@ -233,8 +233,11 @@ virality.
   `tags.yaml`. They can be wrong.
 - **Reaction presence is a heuristic** based on similarity to descriptions such as "a streamer
   reacting". It works best with a visible face camera or loud voice reactions.
-- **Smart crop** follows horizontal action with one crop position per clip. It does not track a
-  subject that moves across the frame during the clip.
+- **Smart crop** follows horizontal action with one crop position per clip, and only a little:
+  the centre of the screen, where third-person games keep the player or the car, always stays
+  in frame. It does not track a subject that moves across the frame. Over-the-shoulder aiming
+  puts the character left of centre, outside a 9:16 crop; use the blurred-background framing
+  for those clips.
 - **CPU indexing is slow** for long sessions (about real time or slower). A GPU helps a lot.
 - Tested by the maintainer on Windows 11 (CPU). Linux and Windows run the test suite in CI;
   GPU and macOS support follow the libraries' standard paths but have had less testing.
@@ -244,7 +247,7 @@ virality.
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 190 tests; no model download (a fake embedder is used)
+python -m pytest              # 193 tests; no model download (a fake embedder is used)
 python -m pytest -m model     # opt-in test with the real EmbeddingGemma 2
 python -m ruff check src tests && python -m ruff format --check src tests
 python -m mypy                # strict
