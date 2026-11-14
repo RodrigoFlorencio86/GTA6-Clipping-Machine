@@ -328,7 +328,7 @@ def render(service: ClippingService) -> None:
         ms=result.elapsed_ms,
     )
     if result.filled:
-        summary += " " + t("search.summary_filled", filled=result.filled)
+        summary += " · " + t("search.summary_filled", filled=result.filled)
     st.caption(summary)
 
     max_s = service.settings.search.max_clip_duration_seconds

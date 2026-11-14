@@ -125,6 +125,19 @@ as you like. A CUDA GPU indexes much faster and is used automatically.
 
 ## Quick start
 
+### Easiest: let your AI coding assistant install it
+
+Using **Claude Code**, **OpenAI Codex**, Cursor or another AI coding agent? Paste this:
+
+```text
+Install and start https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine on my
+computer, following the AGENTS.md file in that repository.
+```
+
+The agent checks Python and FFmpeg, installs the app, downloads the AI model and opens it for
+you. The step-by-step instructions it follows are in [AGENTS.md](AGENTS.md). Prefer to do it
+yourself? Read on.
+
 ### 1. Install FFmpeg
 
 ```bash

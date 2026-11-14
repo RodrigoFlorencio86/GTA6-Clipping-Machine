@@ -7,6 +7,9 @@ fileWatcherType = "none"
 gatherUsageStats = false    # no telemetry
 serverAddress = "localhost" # also stops Streamlit from looking up your public IP
 
+[client]
+toolbarMode = "minimal"     # no "Deploy" button: the app is meant to stay local
+
 [theme]
 base = "dark"
 primaryColor = "#F2A33A"

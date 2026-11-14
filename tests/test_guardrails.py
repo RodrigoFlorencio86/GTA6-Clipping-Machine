@@ -113,6 +113,7 @@ def test_streamlit_is_local_only_and_does_not_report_usage() -> None:
     config = tomllib.loads((ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8"))
     assert config["browser"]["gatherUsageStats"] is False
     assert config["server"]["address"] == "127.0.0.1"
+    assert config["client"]["toolbarMode"] == "minimal"  # no "Deploy to the cloud" button
 
 
 def test_web_app_never_looks_up_the_external_ip() -> None:
@@ -124,6 +125,7 @@ def test_web_app_never_looks_up_the_external_ip() -> None:
         option = command.index("--browser.serverAddress")
         assert command[option + 1] in {"127.0.0.1", "localhost"}
         assert command[command.index("--browser.gatherUsageStats") + 1] == "false"
+        assert command[command.index("--client.toolbarMode") + 1] == "minimal"
 
 
 def test_importing_the_app_disables_telemetry_in_the_process() -> None:

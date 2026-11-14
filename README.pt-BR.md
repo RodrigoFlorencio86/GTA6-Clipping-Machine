@@ -100,6 +100,22 @@ vezes você quiser. Uma GPU CUDA indexa bem mais rápido e é usada automaticame
 
 ## Instalação rápida
 
+### O jeito mais fácil: peça para o seu assistente de IA
+
+Usa o **Claude Code**, o **OpenAI Codex**, o Cursor ou outro agente de programação com IA?
+Cole isto:
+
+```text
+Instale e abra https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine no meu
+computador, seguindo o arquivo AGENTS.md desse repositório.
+```
+
+O agente confere o Python e o FFmpeg, instala o app, baixa o modelo de IA e abre a interface
+para você. As instruções que ele segue estão no [AGENTS.md](AGENTS.md). Prefere fazer à mão?
+Siga os passos abaixo.
+
+### Passo a passo
+
 ```bash
 # 1. FFmpeg
 winget install Gyan.FFmpeg        # Windows

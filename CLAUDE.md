@@ -1,5 +1,8 @@
 # CLAUDE.md — GTA6 Clipping Machine
 
+> **Agente instalando o app para um usuário final?** Siga o [AGENTS.md](AGENTS.md) e ignore o
+> resto deste arquivo: as seções abaixo são notas do mantenedor (ambiente, decisões, testes).
+
 Instruções para o Claude Code trabalhar neste repositório. Leia inteiro antes de mudar qualquer coisa.
 A especificação de produto original é [GTA6-Clipping-Machine-SPEC.md](GTA6-Clipping-Machine-SPEC.md) (pt-BR).
 

@@ -51,6 +51,9 @@ def streamlit_command(host: str, port: int) -> list[str]:
         shown,
         "--browser.gatherUsageStats",
         "false",
+        # Hides Streamlit's "Deploy" button: this app is meant to stay on this computer.
+        "--client.toolbarMode",
+        "minimal",
     ]
 
 
