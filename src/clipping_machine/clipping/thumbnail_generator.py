@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from clipping_machine import ffmpeg
-from clipping_machine.clipping.vertical_formatter import Framing, vertical_filter
+from clipping_machine.clipping.vertical_formatter import ContentBox, Framing, vertical_filter
 
 
 def generate_thumbnail(
@@ -18,11 +18,18 @@ def generate_thumbnail(
     height: int,
     framing: Framing = "center",
     focus_x: float | None = None,
+    content_box: ContentBox | None = None,
 ) -> Path:
     """Write a JPEG of the frame at ``time_ms`` using the clip's vertical framing."""
     time_ms = min(max(0, time_ms), max(0, info.duration_ms - 100))
     chain = vertical_filter(
-        info.width, info.height, width, height, framing=framing, focus_x=focus_x
+        info.width,
+        info.height,
+        width,
+        height,
+        framing=framing,
+        focus_x=focus_x,
+        content_box=content_box,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     ffmpeg.run_ffmpeg(

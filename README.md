@@ -42,8 +42,9 @@ in 100+ languages ("perseguição policial com explosão" works as well as Engli
 - **Timeline** of the moments over the whole video, with audio and motion curves.
 - **Manual trim** of start and end, with a live re-score.
 - **Vertical export**: 1080x1920 H.264/AAC MP4 with *smart crop* (follows the action),
-  centre crop, or the full frame over a blurred background. Automatic thumbnail. Optional
-  burned-in subtitles, transcribed locally.
+  centre crop, or the full frame over a blurred background. Black bars recorded around the
+  picture (4:3 games, letterboxed cutscenes, OBS canvases) are removed automatically.
+  Automatic thumbnail. Optional burned-in subtitles, transcribed locally.
 - **Approval queue**: every clip waits for your decision. Nothing is published by the app.
 - **Private by design**: local files only (no link downloading), local processing, no
   telemetry, works fully offline after the first model download.
@@ -221,10 +222,13 @@ virality.
   an 8-second window. Very specific or brief events can be missed; rephrasing the query, or
   lowering the minimum similarity, often helps.
 - **Similarities are close together.** With this model, unrelated content scores around 0.5–0.6
-  and clear matches around 0.7–0.78. Treat 0.65 as a starting point.
-- **Loud moments get a boost.** Audio intensity is 20% of the score, so a loud moment can rank
-  above a slightly better semantic match. Change the weights in `processing.yaml`, or sort by
-  similarity in the CLI.
+  and clear matches around 0.7–0.78. Results must clear 0.65 *and* be within 0.04 of the
+  query's best match (the *relevance window* under Search settings); widen the window if a
+  search returns too little.
+- **Loud moments get a boost.** Audio intensity is 20% of the score. The relevance window keeps
+  a loosely related loud scene from jumping ahead of the real match, but among moments of
+  similar relevance the louder one usually ranks first. Change the weights in
+  `processing.yaml`, or sort by similarity in the CLI.
 - **Tags are hints**, computed by comparing each window with short descriptions in
   `tags.yaml`. They can be wrong.
 - **Reaction presence is a heuristic** based on similarity to descriptions such as "a streamer
@@ -240,7 +244,7 @@ virality.
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 180 tests; no model download (a fake embedder is used)
+python -m pytest              # 190 tests; no model download (a fake embedder is used)
 python -m pytest -m model     # opt-in test with the real EmbeddingGemma 2
 python -m ruff check src tests && python -m ruff format --check src tests
 python -m mypy                # strict

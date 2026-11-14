@@ -56,6 +56,15 @@ def _search_form(service: ClippingService, videos: list[Video], t: Translator) -
                 help=t("search.min_similarity_help"),
                 key="search_min_similarity",
             )
+            relative_margin = a.slider(
+                t("search.relative_margin"),
+                0.0,
+                0.2,
+                float(min(config.relative_margin, 0.2)),
+                0.01,
+                help=t("search.relative_margin_help"),
+                key="search_relative_margin",
+            )
             top_k = b.number_input(
                 t("search.top_k"), 5, 500, int(config.top_k), 5, key="search_top_k"
             )
@@ -85,6 +94,7 @@ def _search_form(service: ClippingService, videos: list[Video], t: Translator) -
                 video_id=None if video_choice == _ALL else video_choice,
                 top_k=int(top_k),
                 min_similarity=float(min_similarity),
+                relative_margin=float(relative_margin),
                 merge_gap_seconds=float(merge_gap),
                 fill_to_min_results=fill,
             )

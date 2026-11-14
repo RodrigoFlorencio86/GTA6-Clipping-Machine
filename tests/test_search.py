@@ -17,6 +17,7 @@ from clipping_machine.search.interval_merger import (
     merge_hits,
     split_long,
 )
+from clipping_machine.search.moment_finder import effective_threshold
 from clipping_machine.search.query_engine import QueryEngine, calibrate
 from clipping_machine.search.vector_store import VectorRecord, VectorStore
 from clipping_machine.services import ClippingService
@@ -328,6 +329,36 @@ def test_fill_to_min_results_marks_weak_moments(service: ClippingService) -> Non
     assert weak and result.filled == len(weak)
     assert len(result.moments) <= service.settings.search.min_results
     assert all(m.end_ms <= strong[0].start_ms or m.start_ms >= strong[0].end_ms for m in weak)
+
+
+def test_effective_threshold_follows_the_best_match() -> None:
+    assert effective_threshold(0.65, 0.74, 0.04) == pytest.approx(0.70)
+    # The absolute floor always applies, even when the best match is weak.
+    assert effective_threshold(0.65, 0.66, 0.04) == 0.65
+    assert effective_threshold(0.65, 0.50, 0.04) == 0.65
+    assert effective_threshold(0.65, 0.90, 0.0) == 0.65
+
+
+def test_loose_but_loud_match_cannot_outrank_the_real_one(service: ClippingService) -> None:
+    # Windows 10-11 are loud and busy but only partly about explosions (cosine ~0.71);
+    # window 25 is a quiet, clear explosion (cosine ~1.0).
+    _seed(service, {10: "explosion+cat", 11: "explosion+cat", 25: "explosion"})
+
+    without_margin = service.search("explosion", relative_margin=0.0, fill_to_min_results=False)
+    assert without_margin.moments[0].start_ms == 60_000  # the loud partial match wins on score
+    assert without_margin.effective_threshold == pytest.approx(0.65)
+
+    result = service.search("explosion", fill_to_min_results=False)
+    assert [(m.start_ms, m.end_ms) for m in result.moments] == [(150_000, 158_000)]
+    assert result.hits_above_threshold == 1
+    assert result.effective_threshold == pytest.approx(result.best_similarity - 0.04)
+    assert result.min_similarity == pytest.approx(0.65)
+
+    # The partial match is still offered, after the real one and marked as weaker.
+    filled = service.search("explosion")
+    assert filled.moments[0].start_ms == 150_000 and not filled.moments[0].below_threshold
+    loose = [m for m in filled.moments if m.start_ms < 74_000 and m.end_ms > 60_000]
+    assert loose and all(m.below_threshold for m in loose)
 
 
 def test_search_can_return_at_least_ten_candidates(service: ClippingService) -> None:

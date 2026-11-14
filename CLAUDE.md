@@ -59,8 +59,8 @@ Os testes nunca carregam o modelo real: usam `tests/fakes.py::FakeEmbedder` (um 
 | `ingest/` | `video_validator` (URL, extensão, tamanho, ffprobe, duração, resolução) · `video_importer` (upload ou caminho local in-place; exige confirmação de direitos; fingerprint anti-duplicata) · `windows` (janelas 8 s / overlap 2 s; grade de keyframes 2 s) · `frame_extractor` (keyframes JPEG + movimento num único decode) · `audio_chunker` (WAV mono 16 kHz) · `scene_splitter` (PySceneDetect) |
 | `analysis/` | `audio_analyzer` (dBFS, normalização por vídeo) · `scene_describer` (tags zero-shot e sinal de reação via embeddings de texto) · `highlight_scorer` (fórmula do score, `duration_fit`, `novelty`) · `transcriber` (faster-whisper opcional, só para legendas na exportação) |
 | `embeddings/` | `base.py` (Protocol `EmbeddingBackend`, `WindowInput`) · `embeddinggemma_client.py` (backend real, lazy, thread-safe) · `video_embedder.py` (monta janelas, batches) |
-| `search/` | `vector_store` (LanceDB, uma tabela por dimensão, filtra por modelo) · `query_engine` · `interval_merger` (agrupar < 3 s, expandir < 8 s, dividir > 60 s) · `moment_finder` (score, ranking, completar até 10 resultados marcando os abaixo do limiar) |
-| `clipping/` | `vertical_formatter` (smart crop por movimento / centro / blur_pad) · `clip_builder` (MP4 H.264+AAC, `-map_metadata -1`, nome `gta6_clip_<data>_<HH-MM-SS>_score093.mp4`) · `thumbnail_generator` · `subtitle_burner` (SRT; ffmpeg roda com cwd na pasta do SRT para evitar escape de `C:`) |
+| `search/` | `vector_store` (LanceDB, uma tabela por dimensão, filtra por modelo) · `query_engine` · `interval_merger` (agrupar < 3 s, expandir < 8 s, dividir > 60 s) · `moment_finder` (limiar efetivo = max(0,65, melhor − `relative_margin` 0,04); score, ranking, completar até 10 resultados marcando os abaixo do limiar) |
+| `clipping/` | `vertical_formatter` (corta bordas pretas gravadas, depois smart crop por movimento / centro / blur_pad; `analyze_framing` faz uma passada só para bordas e foco) · `clip_builder` (MP4 H.264+AAC, `-map_metadata -1`, nome `gta6_clip_<data>_<HH-MM-SS>_score093.mp4`) · `thumbnail_generator` · `subtitle_burner` (SRT; ffmpeg roda com cwd na pasta do SRT para evitar escape de `C:`) |
 | `publishing/approval_queue.py` | máquina de estados: candidate → approved → exported → published(manual) → archived; rejected |
 | `pipeline/` | `indexer` (estágios com progresso persistido no SQLite) · `jobs` (1 worker em thread) |
 | `storage/` | SQLite (`database.py` schema, `models.py` dataclasses, `repositories.py`) |
@@ -87,7 +87,9 @@ lancedb 0.41, streamlit 1.67, scenedetect 0.7.3, numpy 2.5, pandas 3.1.
 - Áudio muda pouco o embedding da janela (cos ~0,97 com vs. sem áudio).
 - Tags: exigem z-score ≥ 1 dentro do vídeo **e** cosseno ≥ 0,65 (sem o piso absoluto, vídeo sem ação recebia tags aleatórias). Reação: cosseno mapeado de [0,62, 0,76] para [0, 1].
 - Velocidade na máquina do mantenedor (Ryzen 7 5825U, sem GPU NVIDIA, 8 threads): ~6 s/janela com 4 frames a 70 tokens; 12 s com 140 tokens. `vision_tokens: auto` = 70 em CPU, 140 em GPU (acurácia top-1 igual no teste). Vídeo de 96 s indexou em 113 s (~1,2x tempo real). Carregar o modelo leva ~16–50 s; depois a busca leva ~0,2 s (o `warm_up` tira o carregamento da métrica de latência).
-- Com a fórmula da spec, áudio muito alto (20% do peso) pode colocar um momento barulhento acima de uma correspondência semântica melhor. É comportamento esperado; documentado nas limitações do README. A CLI tem `--sort similarity`.
+- Em gameplay real (FF8, 8 min 50 s, 88 janelas) a faixa fica mais cheia: consultas genéricas tinham até 50 janelas acima de 0,65, momentos barulhentos pouco relacionados passavam na frente da cena certa e janelas vizinhas viravam blocos de 40–56 s. Por isso existe `search.relative_margin` (0,04): o limiar efetivo é `max(min_similarity, melhor − 0,04)` e o score só reordena momentos de relevância parecida. Entre esses, o mais barulhento ainda tende a ganhar (fórmula da spec; a CLI tem `--sort similarity`).
+- Bordas pretas: a gravação de FF8 tinha a imagem em 1440x~1014 dentro de 1920x1080 (barras com luma ~0–4). `analyze_framing` detectou x 246–1674, y 36–1038, igual ao `cropdetect` do FFmpeg com a margem de 1 px de análise. Jogos atuais em tela cheia não têm borda (a detecção não faz nada), mas cutscenes com letterbox e canvas do OBS têm.
+- As tags de `tags.yaml` são de GTA; em outro jogo saem sem sentido (paraquedas, briga em FF8). É esperado: o usuário edita o arquivo.
 - Pesos em cache: `~/.cache/huggingface/hub/models--google--embeddinggemma-2` (sem symlinks no Windows; aviso inofensivo).
 
 ## Convenções de código
@@ -113,10 +115,11 @@ lancedb 0.41, streamlit 1.67, scenedetect 0.7.3, numpy 2.5, pandas 3.1.
 
 Verificado nesta versão:
 
-- `pytest`: 180 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
+- `pytest`: 190 testes passam (Windows 11, Python 3.13, FFmpeg 8.1); `pytest -m model` (modelo real) passa.
 - CI no GitHub Actions verde: Ubuntu com Python 3.11, 3.12 e 3.13 e Windows com Python 3.13 (lint, mypy, pytest). No 3.11 o NumPy instalado é o 2.4, cujas anotações devolvem `Any` em `np.clip`/`np.sqrt`: converta com `np.asarray(..., dtype=...)` anotado.
 - `ruff check`, `ruff format --check` e `mypy --strict` limpos.
 - Teste ponta a ponta com o modelo real (CLI `index` + `search`) num vídeo sintético de 96 s com 8 cenas: as consultas caem nas cenas certas, uma consulta sem correspondência não retorna nada acima de 0,65, busca em ~0,2 s.
+- Primeiro teste com gameplay real do usuário (Final Fantasy 8, 8 min 50 s, 1080p, salvo na raiz como `2026-11-14 11-11-11.mp4`, ignorado pelo git): indexou em 692 s (~1,3x), busca ~0,3 s, consultas de cenas marcantes acertaram; levou ao limiar relativo e ao corte de bordas pretas. Clipes exportados depois da correção sem faixas pretas (smart e blur_pad).
 - UI coberta por `tests/test_ui.py` (`AppTest`): abas, troca de idioma, recusa de link, exigência de confirmação de direitos e fluxo completo importar → indexar → buscar → gerar clipe → aprovar → exportar.
 
 - Imagem Docker (CPU) compila e sobe; `doctor` roda dentro dela; o app não faz consulta de IP externo (`browser.serverAddress` sempre definido pela CLI; teste em `test_guardrails.py`).
@@ -126,7 +129,7 @@ Ainda não verificado pelo mantenedor: GPU CUDA, macOS, faster-whisper com legen
 Próximos passos sugeridos (ver também `docs/ROADMAP.md`):
 
 1. Gravar um GIF/screenshot real da UI com gameplay próprio do usuário para o README (aumenta muito a conversão em estrelas).
-2. Testar com uma gravação longa real (1–3 h) e ajustar `tags.yaml` e os pesos com base no resultado.
+2. Testar com uma gravação longa real (1–3 h), de preferência de GTA, e ajustar `tags.yaml`, os pesos e `relative_margin` com base no resultado (o 0,04 foi escolhido com um único vídeo real).
 3. Criar a release `v0.1.0` no GitHub (tag + notas) quando o usuário validar com gameplay real.
 4. Itens da fase 2 do roadmap: ajustar bordas do clipe a cortes de cena e silêncios, descoberta de destaques sem consulta, VLM local para descrições.
 

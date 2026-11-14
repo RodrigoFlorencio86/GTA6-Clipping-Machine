@@ -73,6 +73,8 @@ _EN: dict[str, str] = {
     "search.min_similarity": "Minimum similarity (cosine)",
     "search.min_similarity_help": "Segments below this cosine similarity to the query are "
     "ignored. 0.65 is the default; raise it for stricter matches.",
+    "search.relative_margin": "Relevance window",
+    "search.relative_margin_help": "Only segments within this distance of the best match count as results, so a loud scene that matches loosely cannot outrank the right one. 0 turns it off.",
     "search.top_k": "Segments to retrieve (top-k)",
     "search.merge_gap": "Merge results closer than (seconds)",
     "search.fill": "Fill up to {n} results with the best moments below the threshold",
@@ -259,6 +261,8 @@ _PT: dict[str, str] = {
     "search.min_similarity": "Similaridade mínima (cosseno)",
     "search.min_similarity_help": "Segmentos abaixo desta similaridade de cosseno com a consulta "
     "são ignorados. 0,65 é o padrão; aumente para resultados mais estritos.",
+    "search.relative_margin": "Janela de relevância",
+    "search.relative_margin_help": "Só contam como resultado os segmentos até esta distância do melhor resultado, para que uma cena barulhenta e pouco parecida não passe na frente da certa. 0 desliga.",
     "search.top_k": "Segmentos a recuperar (top-k)",
     "search.merge_gap": "Agrupar resultados a menos de (segundos)",
     "search.fill": "Completar até {n} resultados com os melhores momentos abaixo do limiar",

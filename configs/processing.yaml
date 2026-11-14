@@ -27,6 +27,7 @@ scenes:
 search:
   top_k: 50
   min_similarity: 0.65             # cosine similarity between query and segment
+  relative_margin: 0.04            # also keep only segments within 0.04 of the best match (0 = off)
   merge_gap_seconds: 3             # hits closer than this become one moment
   min_clip_duration_seconds: 8
   max_clip_duration_seconds: 60
@@ -56,3 +57,5 @@ export:
   framing: smart                   # smart | center | blur_pad
   filename_prefix: gta6_clip
   draft_height: 640
+  remove_black_borders: true       # cut black bars recorded around the picture (no-op if none)
+  black_level: 24                  # rows/columns this dark in every frame count as border

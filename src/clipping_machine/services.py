@@ -152,6 +152,7 @@ class ClippingService:
         video_id: str | None = None,
         top_k: int | None = None,
         min_similarity: float | None = None,
+        relative_margin: float | None = None,
         merge_gap_seconds: float | None = None,
         fill_to_min_results: bool = True,
     ) -> SearchResult:
@@ -160,6 +161,7 @@ class ClippingService:
             video_id=video_id,
             top_k=top_k,
             min_similarity=min_similarity,
+            relative_margin=relative_margin,
             merge_gap_seconds=merge_gap_seconds,
             fill_to_min_results=fill_to_min_results,
         )
@@ -226,13 +228,18 @@ class ClippingService:
     def _clip_dir(self, clip: Clip) -> Path:
         return self.settings.clips_dir / clip.video_id
 
-    def _focus(
+    def _framing(
         self, video: Video, info: ffmpeg.MediaInfo, clip: Clip, framing: Framing
-    ) -> float | None:
-        if framing != "smart":
-            return None
-        return vertical_formatter.estimate_focus_x(
-            Path(video.path), info, clip.start_ms, clip.end_ms
+    ) -> vertical_formatter.FramingAnalysis:
+        export = self.settings.export
+        return vertical_formatter.analyze_framing(
+            Path(video.path),
+            info,
+            clip.start_ms,
+            clip.end_ms,
+            detect_borders=export.remove_black_borders,
+            track_focus=framing == "smart",
+            black_level=export.black_level,
         )
 
     def render_draft(
@@ -247,8 +254,12 @@ class ClippingService:
         video = self.videos.require(clip.video_id)
         info = ffmpeg.probe(Path(video.path))
         chosen: Framing = framing or self.settings.export.framing
+        analysis = self._framing(video, info, clip, chosen)
         options = RenderOptions.draft(
-            self.settings.export, framing=chosen, focus_x=self._focus(video, info, clip, chosen)
+            self.settings.export,
+            framing=chosen,
+            focus_x=analysis.focus_x,
+            content_box=analysis.content_box,
         )
         output = self._clip_dir(clip) / "drafts" / f"{clip.clip_id}.mp4"
         render_clip(
@@ -288,8 +299,13 @@ class ClippingService:
         source = Path(video.path)
         info = ffmpeg.probe(source)
         chosen: Framing = framing or self.settings.export.framing
-        focus = self._focus(video, info, clip, chosen)
-        options = RenderOptions.final(self.settings.export, framing=chosen, focus_x=focus)
+        analysis = self._framing(video, info, clip, chosen)
+        options = RenderOptions.final(
+            self.settings.export,
+            framing=chosen,
+            focus_x=analysis.focus_x,
+            content_box=analysis.content_box,
+        )
 
         directory = self._clip_dir(clip)
         output = unique_path(
@@ -326,7 +342,8 @@ class ClippingService:
                 width=options.width,
                 height=options.height,
                 framing=chosen,
-                focus_x=focus,
+                focus_x=analysis.focus_x,
+                content_box=analysis.content_box,
             )
         except ffmpeg.FFmpegError:
             thumbnail = None

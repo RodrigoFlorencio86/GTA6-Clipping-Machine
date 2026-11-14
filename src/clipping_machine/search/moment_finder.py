@@ -67,6 +67,21 @@ class SearchResult:
     min_similarity: float
     filled: int = 0
     best_similarity: float = field(default=0.0)
+    # The cut actually applied: ``max(min_similarity, best_similarity - relative_margin)``.
+    effective_threshold: float = field(default=0.0)
+
+
+def effective_threshold(min_similarity: float, best_similarity: float, margin: float) -> float:
+    """Absolute floor, raised to ``best - margin`` when the query has a clear best match.
+
+    EmbeddingGemma 2 similarities sit in a narrow band, so on some footage most windows
+    clear the absolute floor. Keeping only those close to the best match stops loosely
+    related but loud or busy windows from outranking the real match, and keeps merged
+    moments tight. Above-threshold windows that miss the cut become fill-in candidates.
+    """
+    if margin <= 0:
+        return min_similarity
+    return max(min_similarity, best_similarity - margin)
 
 
 @dataclass
@@ -124,17 +139,21 @@ class MomentFinder:
         video_id: str | None = None,
         top_k: int | None = None,
         min_similarity: float | None = None,
+        relative_margin: float | None = None,
         merge_gap_seconds: float | None = None,
         fill_to_min_results: bool = True,
     ) -> SearchResult:
         """Search, merge neighbouring hits into intervals, score and rank them."""
         config = self._settings.search
-        threshold = config.min_similarity if min_similarity is None else min_similarity
+        floor = config.min_similarity if min_similarity is None else min_similarity
+        margin = config.relative_margin if relative_margin is None else relative_margin
         gap_ms = config.merge_gap_ms if merge_gap_seconds is None else int(merge_gap_seconds * 1000)
         self._engine.warm_up()
         started = time.perf_counter()
 
         vector_hits = self._engine.search(query, top_k=top_k or config.top_k, video_id=video_id)
+        best_similarity = max((hit.similarity for hit in vector_hits), default=0.0)
+        threshold = effective_threshold(floor, best_similarity, margin)
         by_video: dict[str, list[Hit]] = defaultdict(list)
         for vector_hit in vector_hits:
             by_video[vector_hit.video_id].append(self._engine.to_hit(vector_hit))
@@ -175,9 +194,10 @@ class MomentFinder:
             hits_total=len(vector_hits),
             hits_above_threshold=above,
             elapsed_ms=elapsed_ms,
-            min_similarity=threshold,
+            min_similarity=floor,
             filled=len(filler),
-            best_similarity=max((hit.similarity for hit in vector_hits), default=0.0),
+            best_similarity=best_similarity,
+            effective_threshold=threshold,
         )
 
     # --------------------------------------------------------------- rescoring

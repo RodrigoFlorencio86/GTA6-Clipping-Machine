@@ -2,7 +2,8 @@
 
 Every "concept" owns one axis of the vector space. A text query lights up the axes
 of the concept words it contains; a video window lights up the axis assigned to it
-by ``window_concepts`` (keyed by window index, i.e. start time // stride). That
+by ``window_concepts`` (keyed by window index, i.e. start time // stride; join two
+concepts with ``+`` for a partial match). That
 makes search results fully predictable without downloading any model.
 """
 
@@ -63,8 +64,9 @@ class FakeEmbedder:
             index = self._next_window
             self._next_window += 1
             self.window_calls.append(window)
+            # "explosion+cat" mixes two concepts: a partial match (cosine ~0.71) for either.
             concept = self.window_concepts.get(index)
-            rows.append(self._concept_vector([concept] if concept else [], f"w:{index}"))
+            rows.append(self._concept_vector(concept.split("+") if concept else [], f"w:{index}"))
         return l2_normalize(np.stack(rows)) if rows else np.zeros((0, self._dimension), np.float32)
 
     def embed_images(self, images: Sequence[Path]) -> Matrix:

@@ -130,6 +130,10 @@ class CalibrationConfig(_Section):
 class SearchConfig(_Section):
     top_k: int = Field(default=50, gt=0)
     min_similarity: float = Field(default=0.65, ge=0, le=1)
+    # A moment must also be within this distance of the query's best similarity, so loud or
+    # busy footage that matches the query only loosely cannot outrank the real match.
+    # 0 disables it (only ``min_similarity`` applies).
+    relative_margin: float = Field(default=0.04, ge=0, le=1)
     merge_gap_seconds: float = Field(default=3.0, ge=0)
     min_clip_duration_seconds: float = Field(default=8.0, gt=0)
     max_clip_duration_seconds: float = Field(default=60.0, gt=0)
@@ -190,6 +194,10 @@ class ExportConfig(_Section):
     framing: Literal["smart", "center", "blur_pad"] = "smart"
     filename_prefix: str = "gta6_clip"
     draft_height: int = Field(default=640, ge=160)
+    # Cut black borders recorded around the picture (4:3 games, letterboxed cutscenes,
+    # an OBS canvas larger than the game) before framing. No-op when there are none.
+    remove_black_borders: bool = True
+    black_level: int = Field(default=24, ge=0, le=255)  # mean luma at or below = border
 
     @model_validator(mode="after")
     def _vertical(self) -> ExportConfig:

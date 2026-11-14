@@ -64,7 +64,12 @@ none of the concepts still received "relative winner" tags.
 
 1. **Query embedding** with the model's `SearchQuery` task prompt.
 2. **Vector search** (`top_k`, default 50) with cosine similarity, optionally restricted to one video.
-3. **Threshold**: hits below `min_similarity` (0.65, raw cosine) are set aside.
+3. **Threshold**: a hit counts only if its raw cosine is at least
+   `max(min_similarity, best_similarity − relative_margin)`, i.e. at least 0.65 **and** within
+   0.04 of the query's best match. The relative part exists because similarities sit in a
+   narrow band: on a real 9-minute recording, 50 of 88 windows cleared 0.65 for a generic
+   query, so loosely related but loud scenes outranked the right one and neighbouring hits
+   merged into 40–56 s blocks of mixed content. `relative_margin: 0` turns it off.
 4. **Interval merging** (`search/interval_merger.py`):
    - hits whose gap is < 3 s are merged into one interval;
    - intervals longer than 60 s are split into equal parts no longer than 45 s;
@@ -90,8 +95,9 @@ none of the concepts still received "relative winner" tags.
    | duration_fit | 1 inside 15–45 s, linear down to 0.5 at 8 s and to 0 at 60 s |
 
    Weights live in `configs/processing.yaml` and must sum to 1.
-6. **Ranking and filling**: moments are sorted by score. If fewer than 10 pass the threshold,
-   the best sub-threshold moments are appended and clearly marked, so the user always has
+6. **Ranking and filling**: moments are sorted by score. Because they all passed step 3, the
+   score only reorders moments of similar relevance. If fewer than 10 pass, the best
+   remaining moments (by similarity) are appended and clearly marked, so the user always has
    candidates to review without the threshold silently changing.
 
 A manual start/end change re-runs step 5 for the new interval.
@@ -112,6 +118,12 @@ candidate ──approve──► approved ──export──► exported ──u
 - `export_clip` refuses anything not in `approved`. It renders 1080x1920 H.264/AAC MP4 with
   `+faststart`, strips source metadata, writes a thumbnail and never overwrites an earlier export.
 - Framing (`clipping/vertical_formatter.py`):
+  - Black borders recorded around the picture (a 4:3 game in a 16:9 capture, letterboxed
+    cutscenes, an OBS canvas larger than the game) are cut first. One low-resolution pass
+    (320 px wide, 4 fps) over the clip marks a row or column as border when its mean
+    brightness stays at or below `black_level` (24) in every sampled frame, like FFmpeg's
+    `cropdetect`. Borders under 1% of the frame are ignored, and a box under half the frame
+    is rejected, so full-frame footage is left untouched. The same pass feeds the smart crop.
   - `smart`: scale to fill and crop, shifted towards localized motion. Whole-frame change
     (camera pans) is subtracted first, so only a moving subject pulls the crop.
   - `center`: plain centre crop.

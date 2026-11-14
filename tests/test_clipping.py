@@ -20,8 +20,12 @@ from clipping_machine.clipping.clip_builder import (
 from clipping_machine.clipping.subtitle_burner import Cue
 from clipping_machine.clipping.thumbnail_generator import generate_thumbnail
 from clipping_machine.clipping.vertical_formatter import (
+    ContentBox,
+    analyze_framing,
     blur_pad_filter,
+    content_box_from_fractions,
     crop_filter,
+    detect_content_box,
     estimate_focus_x,
     focus_from_frames,
     vertical_filter,
@@ -84,6 +88,67 @@ def test_focus_defaults_to_centre_without_a_clear_subject() -> None:
     pan = np.stack([np.full((20, 40), value, dtype=np.uint8) for value in (0, 50, 100, 150)])
     assert focus_from_frames(pan) == 0.5  # whole-frame change is not a subject
     assert focus_from_frames(np.zeros((1, 20, 40), dtype=np.uint8)) == 0.5
+
+
+# -------------------------------------------------------------- black borders
+
+
+def _bordered(box: tuple[int, int, int, int] = (20, 5, 140, 85), frames: int = 4) -> np.ndarray:
+    """Gray-level clip whose picture fills ``box`` (left, top, right, bottom); the rest is black."""
+    rng = np.random.default_rng(0)
+    clip = np.full((frames, 90, 160), 16, dtype=np.uint8)  # 160x90, video-range black
+    left, top, right, bottom = box
+    clip[:, top:bottom, left:right] = rng.integers(40, 230, (frames, bottom - top, right - left))
+    return clip
+
+
+def test_detects_pillarbox_and_letterbox() -> None:
+    fractions = detect_content_box(_bordered())
+    assert fractions is not None
+    left, top, right, bottom = fractions
+    # One analysis pixel inside each real border.
+    assert (left, top, right, bottom) == (21 / 160, 6 / 90, 139 / 160, 84 / 90)
+
+
+def test_full_frame_picture_is_left_alone() -> None:
+    assert detect_content_box(_bordered(box=(0, 0, 160, 90))) is None
+    # Borders thinner than 1% of the frame are noise, not letterboxing.
+    assert detect_content_box(_bordered(box=(1, 0, 160, 90))) is None
+
+
+def test_dark_moment_in_one_frame_is_not_a_border() -> None:
+    clip = _bordered(box=(0, 0, 160, 90))
+    clip[:3, :, :40] = 10  # the left side is dark for a while, but not for the whole clip
+    assert detect_content_box(clip) is None
+
+
+def test_small_overlay_inside_a_border_does_not_stop_the_crop() -> None:
+    # A dim logo in the black side bar (as seen in a real capture) must not keep the bar.
+    clip = _bordered(box=(20, 0, 140, 90))
+    clip[:, 80:90, 145:158] = 60
+    fractions = detect_content_box(clip)
+    assert fractions is not None and fractions[2] == 139 / 160
+
+
+def test_implausible_boxes_are_rejected() -> None:
+    assert detect_content_box(np.full((4, 90, 160), 16, dtype=np.uint8)) is None  # all black
+    assert detect_content_box(_bordered(box=(60, 0, 100, 90))) is None  # keeps < half the width
+    assert detect_content_box(np.zeros((0, 90, 160), dtype=np.uint8)) is None
+
+
+def test_content_box_rounds_inwards_to_even_pixels() -> None:
+    box = content_box_from_fractions((21 / 160, 6 / 90, 139 / 160, 84 / 90), 1920, 1080)
+    assert box == ContentBox(x=252, y=72, width=1416, height=936)
+    assert all(value % 2 == 0 for value in (box.x, box.y, box.width, box.height))
+    assert box.crop() == "crop=1416:936:252:72"
+
+
+def test_vertical_filter_cuts_the_borders_first() -> None:
+    box = ContentBox(240, 30, 1440, 1020)
+    chain = vertical_filter(1920, 1080, 1080, 1920, framing="center", content_box=box)
+    assert chain == "crop=1440:1020:240:30," + crop_filter(1440, 1020, 1080, 1920, 0.5)
+    padded = vertical_filter(1920, 1080, 1080, 1920, framing="blur_pad", content_box=box)
+    assert padded == "crop=1440:1020:240:30," + blur_pad_filter(1080, 1920)
 
 
 # -------------------------------------------------------------------- naming
@@ -212,6 +277,56 @@ def test_export_strips_source_metadata(tmp_path: Path) -> None:
 def test_estimate_focus_runs_on_real_video(sample_video: Path) -> None:
     focus = estimate_focus_x(sample_video, ffmpeg.probe(sample_video), 2000, 6000)
     assert 0.1 <= focus <= 0.9
+
+
+@pytest.mark.ffmpeg
+def test_recorded_black_bars_do_not_reach_the_vertical_clip(tmp_path: Path) -> None:
+    from PIL import Image
+
+    # A 4:3-ish picture inside a 16:9 recording: black bars on all four sides.
+    source = tmp_path / "bordered.mp4"
+    ffmpeg.run_ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-t",
+            "3",
+            "-i",
+            "testsrc2=size=360x300:rate=15",
+            "-vf",
+            "pad=640:360:140:30:black",
+            "-pix_fmt",
+            "yuv420p",
+            str(source),
+        ]
+    )
+    info = ffmpeg.probe(source)
+    analysis = analyze_framing(source, info, 0, 3000, detect_borders=True, track_focus=True)
+    box = analysis.content_box
+    assert box is not None
+    assert 140 <= box.x <= 150 and 30 <= box.y <= 40
+    assert 490 <= box.x + box.width <= 500 and 320 <= box.y + box.height <= 330
+    assert analysis.focus_x is not None and 0.0 <= analysis.focus_x <= 1.0
+
+    output = render_clip(
+        source,
+        info,
+        0,
+        2000,
+        tmp_path / "clip.mp4",
+        RenderOptions.draft(ExportConfig(), framing="blur_pad", content_box=box),
+    )
+    still = tmp_path / "frame.png"
+    ffmpeg.run_ffmpeg(["-ss", "1", "-i", str(output), "-frames:v", "1", str(still)])
+    with Image.open(still) as image:
+        pixels = np.asarray(image.convert("L"), dtype=np.float32)
+    # The foreground spans the full width, so its edge columns are picture, not bar.
+    middle = pixels[pixels.shape[0] // 2 - 20 : pixels.shape[0] // 2 + 20]
+    assert middle[:, :3].mean() > 30 and middle[:, -3:].mean() > 30
+
+    # Nothing to cut in a full-frame recording.
+    plain = analyze_framing(source, info, 0, 3000, detect_borders=False, track_focus=False)
+    assert plain.content_box is None and plain.focus_x is None
 
 
 @pytest.mark.ffmpeg

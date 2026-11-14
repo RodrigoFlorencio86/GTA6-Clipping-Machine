@@ -30,8 +30,9 @@ e no som. A busca funciona em mais de 100 idiomas.
 - **Timeline** dos momentos sobre o vídeo inteiro, com curvas de áudio e movimento.
 - **Ajuste manual** de início e fim, com novo cálculo do score.
 - **Exportação vertical** 1080x1920 H.264/AAC com *recorte inteligente* (segue a ação), recorte
-  central ou quadro inteiro sobre fundo desfocado. Thumbnail automática. Legendas queimadas
-  opcionais, com transcrição local.
+  central ou quadro inteiro sobre fundo desfocado. Faixas pretas gravadas em volta da imagem
+  (jogos 4:3, cutscenes com letterbox, canvas do OBS) são removidas automaticamente. Thumbnail
+  automática. Legendas queimadas opcionais, com transcrição local.
 - **Fila de aprovação**: todo clipe espera sua decisão. O app não publica nada.
 - **Privacidade**: só arquivos locais (sem download por link), processamento local, sem
   telemetria, funciona offline depois do primeiro download do modelo.
@@ -128,8 +129,12 @@ nem viralização.
 - Busca semântica não é detecção de eventos: eventos muito curtos ou específicos podem escapar.
   Reescrever a consulta ou baixar a similaridade mínima costuma ajudar.
 - As similaridades ficam próximas (sem relação ≈ 0,5–0,6; correspondência clara ≈ 0,7–0,78).
-- Áudio alto pesa 20% no score e pode colocar um momento barulhento acima de uma correspondência
-  semântica um pouco melhor. Ajuste os pesos em `processing.yaml`.
+  Um resultado precisa passar de 0,65 *e* ficar a até 0,04 do melhor resultado da busca (a
+  *janela de relevância*, nas configurações de busca); aumente a janela se vierem poucos
+  resultados.
+- Áudio alto pesa 20% no score. A janela de relevância impede que uma cena barulhenta e pouco
+  parecida passe na frente da certa, mas entre momentos de relevância parecida o mais
+  barulhento costuma vir primeiro. Ajuste os pesos em `processing.yaml`.
 - Tags e presença de reação são heurísticas.
 - O recorte inteligente usa uma posição horizontal por clipe.
 - Indexar na CPU é lento para sessões longas.

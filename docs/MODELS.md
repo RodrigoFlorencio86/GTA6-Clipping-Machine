@@ -85,6 +85,14 @@ semantic term of the score would barely vary. In a test with 8 distinct scenes, 
 scene was the top match for 8 of 8 English queries and for the Portuguese ones ("um gato",
 "xícara de café", "foguete na plataforma de lançamento").
 
+On real gameplay the band is busier. In a 9-minute recording of a turn-based RPG (88
+windows), a generic query such as "victory screen with experience points" had its best match
+at 0.74 but 50 windows above 0.65. That is why search also requires a hit to be within
+`relative_margin` (0.04) of the best match: the result went from one 38-second block of mixed
+content to the 14-second span that contains the screen. Queries for distinctive scenes (a red
+winged demon, a fire explosion, green cactus creatures, a lightning blast) found the right
+scene first; a query for something absent from the video returned nothing above 0.65.
+
 **Audio** changes a window's embedding only slightly (cosine 0.95–0.98 between the same frames
 with and without audio). It helps queries about sound, but frames dominate.
 

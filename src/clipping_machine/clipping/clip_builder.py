@@ -9,7 +9,7 @@ from pathlib import Path
 
 from clipping_machine import ffmpeg
 from clipping_machine.clipping.subtitle_burner import subtitles_filter
-from clipping_machine.clipping.vertical_formatter import Framing, vertical_filter
+from clipping_machine.clipping.vertical_formatter import ContentBox, Framing, vertical_filter
 from clipping_machine.config import ExportConfig
 
 
@@ -23,10 +23,16 @@ class RenderOptions:
     max_fps: float
     framing: Framing = "center"
     focus_x: float | None = None
+    content_box: ContentBox | None = None
 
     @classmethod
     def final(
-        cls, config: ExportConfig, *, framing: Framing | None = None, focus_x: float | None = None
+        cls,
+        config: ExportConfig,
+        *,
+        framing: Framing | None = None,
+        focus_x: float | None = None,
+        content_box: ContentBox | None = None,
     ) -> RenderOptions:
         return cls(
             width=config.width,
@@ -37,11 +43,17 @@ class RenderOptions:
             max_fps=config.max_fps,
             framing=framing or config.framing,
             focus_x=focus_x,
+            content_box=content_box,
         )
 
     @classmethod
     def draft(
-        cls, config: ExportConfig, *, framing: Framing | None = None, focus_x: float | None = None
+        cls,
+        config: ExportConfig,
+        *,
+        framing: Framing | None = None,
+        focus_x: float | None = None,
+        content_box: ContentBox | None = None,
     ) -> RenderOptions:
         """Small, fast encode used for in-app review."""
         height = ffmpeg.even(config.draft_height)
@@ -55,6 +67,7 @@ class RenderOptions:
             max_fps=30.0,
             framing=framing or config.framing,
             focus_x=focus_x,
+            content_box=content_box,
         )
 
 
@@ -110,6 +123,7 @@ def render_clip(
         focus_x=options.focus_x,
         src_fps=info.fps,
         max_fps=options.max_fps,
+        content_box=options.content_box,
     )
     cwd: Path | None = None
     if subtitles_path is not None:

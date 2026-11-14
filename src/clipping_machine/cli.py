@@ -150,11 +150,16 @@ def _cmd_search(args: argparse.Namespace) -> int:
     from clipping_machine.services import ClippingService
 
     service = ClippingService.from_environment()
-    result = service.search(args.query, video_id=args.video, min_similarity=args.min_similarity)
+    result = service.search(
+        args.query,
+        video_id=args.video,
+        min_similarity=args.min_similarity,
+        relative_margin=args.relative_margin,
+    )
     names = {video.video_id: video.original_name for video in service.videos.all()}
     print(
         f'"{result.query}": {len(result.moments)} moments '
-        f"({result.hits_above_threshold} segments above {result.min_similarity:.2f}, "
+        f"({result.hits_above_threshold} segments above {result.effective_threshold:.2f}, "
         f"{result.elapsed_ms:.0f} ms)"
     )
     moments = list(result.moments)
@@ -203,6 +208,12 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("query")
     search.add_argument("--video", help="restrict to one video id")
     search.add_argument("--min-similarity", type=float, default=None)
+    search.add_argument(
+        "--relative-margin",
+        type=float,
+        default=None,
+        help="keep only segments within this distance of the best match (0 = off)",
+    )
     search.add_argument(
         "--sort",
         choices=["score", "similarity", "time"],
