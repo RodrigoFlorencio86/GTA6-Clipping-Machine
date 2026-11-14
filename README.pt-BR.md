@@ -1,22 +1,67 @@
 # GTA6 Clipping Machine
 
-**Encontre os melhores momentos do seu próprio gameplay descrevendo-os em palavras e transforme
-esses momentos em clipes verticais para TikTok, Instagram Reels e YouTube Shorts. Tudo roda no
-seu computador.**
+**Escreva o que aconteceu e receba o clipe. Uma IA que assiste ao seu gameplay por você, encontra
+os momentos que você descreve em palavras simples e os transforma em clipes verticais para
+TikTok, Instagram Reels e YouTube Shorts. Movida pelo modelo de IA open source do Google, rodando
+inteiramente no seu computador.**
+
+[![CI](https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine/actions/workflows/ci.yml/badge.svg)](https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine/actions/workflows/ci.yml)
+[![Modelo de IA](https://img.shields.io/badge/IA-Google%20EmbeddingGemma%202-4285F4)](https://huggingface.co/google/embeddinggemma-2)
+![Roda localmente](https://img.shields.io/badge/roda-100%25%20local-orange)
+![Sem chave de API](https://img.shields.io/badge/chave%20de%20API-n%C3%A3o%20precisa-brightgreen)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT%20(livre%2C%20com%20cr%C3%A9dito)-green)](#licença-livre-para-usar-com-crédito)
 
 🇺🇸 [Read in English](README.md)
 
 Você gravou três horas de gameplay. Em algum lugar ali tem uma perseguição policial que terminou
-em explosão, uma queda ridícula e um drift perfeito. Em vez de assistir ao arquivo inteiro,
-digite **"perseguição policial com explosão"** e receba uma lista de momentos ordenada, com
-timeline, previews e score. Depois ajuste o corte, aprove e exporte um MP4 1080x1920.
+em explosão, uma queda ridícula e um drift perfeito. Achar esses momentos significa assistir ao
+arquivo inteiro. Em vez disso, digite **"perseguição policial com explosão"** e receba uma lista
+de momentos ordenada, com timeline, previews e score. Ajuste o corte, aprove e exporte um MP4
+1080x1920 pronto para postar.
 
-O projeto usa o [EmbeddingGemma 2](https://huggingface.co/google/embeddinggemma-2), modelo
-aberto de embeddings multimodais do Google DeepMind: texto, frames de vídeo e áudio ficam no
-mesmo espaço vetorial, então suas palavras são comparadas diretamente com o que aparece na tela
-e no som. A busca funciona em mais de 100 idiomas.
+- **Sem upload.** Seu gameplay nunca sai do seu computador.
+- **Sem assinatura, sem chave de API, sem custo por minuto.** A IA roda na sua máquina, de graça.
+- **Sem precisar de placa de vídeo.** Roda na CPU de um notebook comum; uma GPU NVIDIA só deixa
+  mais rápido.
+- **Busca no seu idioma.** O modelo entende mais de 100 idiomas: "perseguição policial com
+  explosão" acha o mesmo momento que a busca em inglês.
+- **Open source de ponta a ponta.** O app é MIT; o modelo de IA é Apache-2.0.
 
 > Feito para GTA, funciona com qualquer jogo. Sem afiliação com a Rockstar Games ou a Take-Two Interactive.
+
+## A IA por trás: EmbeddingGemma 2, open source do Google
+
+O motor de busca é o [**EmbeddingGemma 2**](https://huggingface.co/google/embeddinggemma-2), um
+modelo de IA multimodal open source lançado pelo Google sob a licença Apache-2.0, da mesma
+família dos modelos Gemma. Tem cerca de 744 milhões de parâmetros, pequeno o bastante para rodar
+num notebook, e é um dos poucos modelos abertos que entende **texto, imagem, vídeo e áudio num
+único "espaço de significado"**.
+
+Na prática:
+
+1. Cada janela de 8 segundos da sua gravação (quatro quadros mais o áudio) vira uma lista de 768
+   números, um *embedding*, que resume o que está acontecendo: uma perseguição à noite, uma festa
+   na cobertura, um tiroteio num beco.
+2. A sua busca também vira 768 números, no mesmo espaço.
+3. As janelas mais próximas da sua busca são os momentos que você procura. Sem palavras-chave,
+   sem marcar nada à mão, sem decorar minutagem: a IA compara **significado**.
+
+O modelo é baixado uma vez do Hugging Face (cerca de 1,5 GB) e depois roda offline na sua
+máquina. Ele só serve para *entender* o vídeo: não gera conteúdo, e nada é enviado ao Google nem
+a ninguém.
+
+| | Serviço típico de cortes na nuvem | GTA6 Clipping Machine |
+|---|---|---|
+| Seu gameplay | enviado para o servidor de alguém | fica no seu disco |
+| Custo | plano mensal ou créditos por minuto | grátis |
+| Conta / chave de API | obrigatória | nenhuma |
+| Funciona offline | não | sim, depois de baixar o modelo uma vez |
+| Código | fechado | aberto (MIT), cada etapa pode ser conferida |
+| Publicação | alguns postam nas suas contas por você | nunca: você aprova e posta |
+
+Por baixo, tudo é open source e local: **EmbeddingGemma 2** (entendimento), **FFmpeg**
+(decodificação, recorte e codificação), **PySceneDetect** (cortes de cena), **LanceDB** (busca
+vetorial), **SQLite** (estado e histórico) e **Streamlit** (a interface web em `127.0.0.1`).
 
 ## Recursos
 
@@ -48,9 +93,10 @@ e no som. A busca funciona em mais de 100 idiomas.
 | RAM | 16 GB | 32 GB |
 | GPU | não obrigatória (funciona na CPU) | NVIDIA com 8 GB+ de VRAM |
 
-Na CPU, indexar leva cerca de **1 a 1,5 vez a duração do vídeo** (medido: vídeo de 96 s em
-113 s num notebook Ryzen 7 de 8 núcleos). A busca é rápida depois que o modelo carrega (~0,2 s).
-Uma GPU CUDA indexa bem mais rápido e é usada automaticamente.
+Na CPU, indexar leva cerca de **1 a 1,5 vez a duração do vídeo**, uma vez por gravação
+(medido num notebook Ryzen 7 de 8 núcleos sem placa de vídeo dedicada: gameplay de 9 minutos em
+1080p indexado em 11,5 minutos). Depois disso, cada busca leva **cerca de 0,3 segundo**, quantas
+vezes você quiser. Uma GPU CUDA indexa bem mais rápido e é usada automaticamente.
 
 ## Instalação rápida
 
@@ -142,8 +188,30 @@ nem viralização.
   nesses clipes, use o enquadramento com fundo desfocado.
 - Indexar na CPU é lento para sessões longas.
 
-## Licença
+## Licença: livre para usar, com crédito
 
-[MIT](LICENSE). *Grand Theft Auto e GTA são marcas da Take-Two Interactive Software, Inc. Este
-projeto é independente e não tem afiliação, endosso ou patrocínio da Rockstar Games, Take-Two
-Interactive, Google, TikTok, Instagram ou YouTube.*
+O GTA6 Clipping Machine é software livre sob a [licença MIT](LICENSE), criado por
+**Rodrigo Florencio** ([@RodrigoFlorencio86](https://github.com/RodrigoFlorencio86)).
+
+- ✅ **Use de graça**, para fins pessoais ou comerciais: no seu canal, para clientes, num estúdio.
+- ✅ **Modifique, faça fork, construa em cima e redistribua**, inclusive dentro de outros produtos.
+- 📝 **A única condição: dar crédito ao autor.** Qualquer cópia, fork ou produto que inclua este
+  código, ou uma parte substancial dele, precisa manter o aviso de copyright
+  `Copyright (c) 2026 Rodrigo Florencio` e o texto da licença.
+- 🎬 **Os clipes que você faz são seus.** Sem marca d'água, e nenhum crédito é exigido dentro dos
+  seus vídeos. Se a ferramenta te poupar tempo, uma menção é sempre bem-vinda:
+
+  ```text
+  Cortado com o GTA6 Clipping Machine, de Rodrigo Florencio
+  https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine
+  ```
+
+O EmbeddingGemma 2 é distribuído pelo Google sob a licença Apache-2.0; FFmpeg, PyTorch, LanceDB,
+Streamlit e PySceneDetect têm suas próprias licenças.
+
+Se o projeto for útil para você, **deixe uma ⭐ no GitHub**: isso ajuda outros criadores a
+encontrá-lo.
+
+*Grand Theft Auto e GTA são marcas da Take-Two Interactive Software, Inc. Este projeto é
+independente e não tem afiliação, endosso ou patrocínio da Rockstar Games, Take-Two Interactive,
+Google, TikTok, Instagram ou YouTube.*

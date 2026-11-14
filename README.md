@@ -1,34 +1,69 @@
 # GTA6 Clipping Machine
 
-**Find the best moments in your own gameplay by describing them, and turn them into vertical
-clips for TikTok, Instagram Reels and YouTube Shorts. Everything runs on your computer.**
+**Type what happened, get the clip. An AI that watches your gameplay for you, finds the moments
+you describe in plain words and turns them into vertical clips for TikTok, Instagram Reels and
+YouTube Shorts. Powered by Google's open-source AI model, running entirely on your computer.**
 
 [![CI](https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine/actions/workflows/ci.yml/badge.svg)](https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine/actions/workflows/ci.yml)
+[![AI model](https://img.shields.io/badge/AI-Google%20EmbeddingGemma%202-4285F4)](https://huggingface.co/google/embeddinggemma-2)
+![Runs locally](https://img.shields.io/badge/runs-100%25%20locally-orange)
+![No API key](https://img.shields.io/badge/API%20key-not%20needed-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Local first](https://img.shields.io/badge/processing-100%25%20local-orange)
+[![License: MIT](https://img.shields.io/badge/license-MIT%20(free%2C%20with%20credit)-green)](#license-free-to-use-with-credit)
 
 🇧🇷 [Leia em português](README.pt-BR.md)
 
 You recorded three hours of gameplay. Somewhere in there is a police chase that ended in an
-explosion, a ridiculous fall and a perfect drift. Instead of scrubbing through the whole file,
-type **"police chase with explosion"** and get a ranked list of moments with a timeline,
-previews and a score. Then trim one, approve it and export a 1080x1920 MP4.
+explosion, a ridiculous fall and a perfect drift. Finding them means scrubbing through the whole
+file. Instead, type **"police chase with explosion"** and get a ranked list of moments with a
+timeline, previews and a score. Trim one, approve it and export a ready-to-post 1080x1920 MP4.
 
 ```text
-Query: police chase with explosion
+Query: police chase with explosion                          (illustrative output)
 
 1. 12:04–12:19   score 0.81   police chase, explosion · loud audio · high motion
 2. 27:41–27:58   score 0.74   vehicle on fire, high-speed driving · scene change
 3. 35:10–35:26   score 0.70   motorcycle, police chase
 ```
 
-It is built around [EmbeddingGemma 2](https://huggingface.co/google/embeddinggemma-2), Google
-DeepMind's open multimodal embedding model. Text, video frames and audio share one vector space,
-so your words are matched directly against what is on screen and in the soundtrack. Queries work
-in 100+ languages ("perseguição policial com explosão" works as well as English).
+- **No upload.** Your footage never leaves your computer.
+- **No subscription, no API key, no per-minute cost.** The AI runs on your own machine, free.
+- **No GPU required.** It runs on an ordinary laptop CPU; an NVIDIA GPU just makes it faster.
+- **Search in your language.** The model understands 100+ languages: "perseguição policial com
+  explosão" finds the same moment as the English query.
+- **Open source end to end.** This app is MIT-licensed; the AI model is Apache-2.0.
 
 > Built for GTA, works with any game. Not affiliated with Rockstar Games or Take-Two Interactive.
+
+## The AI behind it: Google's open-source EmbeddingGemma 2
+
+The search engine is [**EmbeddingGemma 2**](https://huggingface.co/google/embeddinggemma-2), an
+open-source multimodal AI model released by Google under the Apache-2.0 license, from the same
+family as Google's Gemma models. It has about 744 million parameters, small enough to run on a
+laptop, and it is one of the few open models that understands **text, images, video and audio
+in a single shared "meaning space"**.
+
+What that means in practice:
+
+1. Every 8-second window of your recording (four frames plus its audio) is turned into a list
+   of 768 numbers, an *embedding*, that captures what is happening: a car chase at night, a
+   rooftop party, a gunfight in an alley.
+2. Your query is turned into 768 numbers in the same space.
+3. The windows whose numbers are closest to your query are the moments you are looking for. No
+   keywords, no manual tagging, no timestamps to remember: the AI matches **meaning**.
+
+The model is downloaded once from Hugging Face (about 1.5 GB) and then runs offline on your
+machine. It is used only to *understand* your footage; it does not generate content, and nothing
+is sent to Google or anyone else.
+
+| | Typical cloud clipping service | GTA6 Clipping Machine |
+|---|---|---|
+| Your footage | uploaded to someone's server | stays on your disk |
+| Cost | monthly plan or per-minute credits | free |
+| Account / API key | required | none |
+| Works offline | no | yes, after the one-time model download |
+| Source code | closed | open (MIT), every step inspectable |
+| Publishing | some can post to your accounts for you | never: you approve and post it yourself |
 
 ## Features
 
@@ -64,6 +99,11 @@ your video ─► validate ─► scenes ─► keyframes every 2 s ─┐
                              └─► approve ─► export 9:16 MP4 (FFmpeg)
 ```
 
+Under the hood, everything is open source and local: **EmbeddingGemma 2** (understanding),
+**FFmpeg** (decoding, cropping and encoding), **PySceneDetect** (scene cuts), **LanceDB**
+(vector search), **SQLite** (state and history) and **Streamlit** (the web interface on
+`127.0.0.1`).
+
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · model setup and measurements:
 [docs/MODELS.md](docs/MODELS.md).
 
@@ -78,9 +118,10 @@ Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · model setup and measure
 | GPU | not required (CPU works) | NVIDIA GPU with 8 GB+ VRAM |
 | Disk | ~5 GB (model + dependencies) plus your recordings | SSD |
 
-On CPU, indexing takes roughly **1–1.5× the length of the video** (measured: a 96 s video in
-113 s on an 8-core Ryzen 7 laptop). Searching is fast once the model is loaded (~0.2 s). A
-CUDA GPU indexes much faster and is used automatically.
+On CPU, indexing takes roughly **1–1.5× the length of the video**, once per recording
+(measured on an 8-core Ryzen 7 laptop without a dedicated GPU: a 9-minute 1080p gameplay
+recording in 11.5 minutes). After that, every search takes **about 0.3 seconds**, as many times
+as you like. A CUDA GPU indexes much faster and is used automatically.
 
 ## Quick start
 
@@ -255,10 +296,29 @@ python -m mypy                # strict
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and the [roadmap](docs/ROADMAP.md).
 
-## License
+## License: free to use, with credit
 
-[MIT](LICENSE). EmbeddingGemma 2 is distributed by Google under Apache-2.0; FFmpeg, PyTorch,
-LanceDB, Streamlit and PySceneDetect are covered by their own licenses.
+GTA6 Clipping Machine is free software under the [MIT License](LICENSE), created by
+**Rodrigo Florencio** ([@RodrigoFlorencio86](https://github.com/RodrigoFlorencio86)).
+
+- ✅ **Use it for free**, personally or commercially: for your own channel, for clients, in a
+  studio.
+- ✅ **Modify it, fork it, build on it, redistribute it**, including inside other products.
+- 📝 **The one condition: credit the author.** Any copy, fork or product that includes this
+  code, or a substantial part of it, must keep the copyright notice
+  `Copyright (c) 2026 Rodrigo Florencio` and the license text.
+- 🎬 **The clips you make are yours.** No watermark, and no credit is required inside your
+  videos. If the tool saves you time, a mention is always appreciated:
+
+  ```text
+  Clipped with GTA6 Clipping Machine by Rodrigo Florencio
+  https://github.com/RodrigoFlorencio86/GTA6-Clipping-Machine
+  ```
+
+EmbeddingGemma 2 is distributed by Google under the Apache-2.0 license; FFmpeg, PyTorch, LanceDB,
+Streamlit and PySceneDetect are covered by their own licenses.
+
+If this project is useful to you, **give it a ⭐ on GitHub**: it helps other creators find it.
 
 *Grand Theft Auto and GTA are trademarks of Take-Two Interactive Software, Inc. This project is
 independent and is not affiliated with, endorsed by or sponsored by Rockstar Games, Take-Two
