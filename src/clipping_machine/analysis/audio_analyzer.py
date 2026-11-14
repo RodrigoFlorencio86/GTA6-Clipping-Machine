@@ -48,7 +48,10 @@ def short_time_rms(
             return np.zeros(0, dtype=np.float32)
         return np.asarray([np.sqrt(np.mean(np.square(samples, dtype=np.float64)))], np.float32)
     frames = samples[:usable].astype(np.float64).reshape(-1, frame)
-    return np.sqrt(np.mean(np.square(frames), axis=1)).astype(np.float32)
+    rms: NDArray[np.float32] = np.asarray(
+        np.sqrt(np.mean(np.square(frames), axis=1)), dtype=np.float32
+    )
+    return rms
 
 
 def measure(samples: NDArray[np.float32], sample_rate: int) -> AudioStats:

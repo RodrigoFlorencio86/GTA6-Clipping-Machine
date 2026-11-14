@@ -124,5 +124,8 @@ def reaction_presence(
     """
     if similarities.ndim != 2 or similarities.shape[0] == 0 or similarities.shape[1] == 0:
         return np.zeros(similarities.shape[0] if similarities.ndim == 2 else 0, dtype=np.float32)
-    best = np.max(similarities, axis=1).astype(np.float64)
-    return np.clip((best - floor) / (ceiling - floor), 0.0, 1.0).astype(np.float32)
+    best = np.asarray(np.max(similarities, axis=1), dtype=np.float64)
+    scaled: NDArray[np.float32] = np.asarray(
+        np.clip((best - floor) / (ceiling - floor), 0.0, 1.0), dtype=np.float32
+    )
+    return scaled
